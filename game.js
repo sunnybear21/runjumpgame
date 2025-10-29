@@ -24,14 +24,14 @@ const SLOW_DOWN_DURATION = 300; // 5초 (60fps * 5)
 // 캐릭터 설정
 const character = {
     x: 100,
-    y: 450,
-    width: 32,
-    height: 32,
+    y: 418, // 크기에 맞춰 y 위치 조정 (450 - 32 = 418)
+    width: 64, // 32 -> 64로 2배 증가
+    height: 64, // 32 -> 64로 2배 증가
     velocityY: 0,
     jumpPower: -12,
     gravity: 0.5,
     isJumping: false,
-    groundY: 450,
+    groundY: 418, // 크기에 맞춰 groundY 조정
     invincible: false, // 무적 상태
     invincibleTimer: 0
 };
@@ -39,6 +39,14 @@ const character = {
 // 캐릭터 이미지
 const characterImgRight = new Image();
 characterImgRight.src = './images/char_walk_right.gif';
+
+// 고양이 이미지
+const catImg = new Image();
+catImg.src = './images/Idle.png';
+const catFrameWidth = 32; // 스프라이트 한 프레임 크기
+const catFrameHeight = 32;
+let catFrame = 0;
+let catFrameTimer = 0;
 
 // 장애물 설정
 const obstacles = [];
@@ -424,44 +432,43 @@ function drawHouse(x, y) {
 
 // 고양이 그리기
 function drawCat(x, y) {
-    // 고양이 몸
-    ctx.fillStyle = '#FF8C42';
-    ctx.beginPath();
-    ctx.ellipse(x, y, 15, 12, 0, 0, Math.PI * 2);
-    ctx.fill();
+    // 애니메이션 프레임 업데이트
+    catFrameTimer++;
+    if (catFrameTimer > 10) { // 10프레임마다 변경
+        catFrame = (catFrame + 1) % 10; // 10개 프레임 순환
+        catFrameTimer = 0;
+    }
 
-    // 고양이 머리
-    ctx.beginPath();
-    ctx.arc(x - 10, y - 5, 10, 0, Math.PI * 2);
-    ctx.fill();
+    // 고양이 이미지가 로드되었으면 이미지로, 아니면 기본 그래픽으로
+    if (catImg.complete) {
+        ctx.drawImage(
+            catImg,
+            catFrame * catFrameWidth, // 스프라이트 시트에서 x 위치
+            0, // y 위치 (한 줄이므로 0)
+            catFrameWidth,
+            catFrameHeight,
+            x - 16, // 중앙 정렬
+            y - 16,
+            catFrameWidth,
+            catFrameHeight
+        );
+    } else {
+        // 이미지 로드 전 기본 고양이 그리기
+        ctx.fillStyle = '#FF8C42';
+        ctx.beginPath();
+        ctx.ellipse(x, y, 15, 12, 0, 0, Math.PI * 2);
+        ctx.fill();
 
-    // 귀
-    ctx.beginPath();
-    ctx.moveTo(x - 15, y - 10);
-    ctx.lineTo(x - 18, y - 18);
-    ctx.lineTo(x - 12, y - 12);
-    ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x - 10, y - 5, 10, 0, Math.PI * 2);
+        ctx.fill();
 
-    ctx.beginPath();
-    ctx.moveTo(x - 5, y - 10);
-    ctx.lineTo(x - 2, y - 18);
-    ctx.lineTo(x - 8, y - 12);
-    ctx.fill();
-
-    // 꼬리
-    ctx.strokeStyle = '#FF8C42';
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(x + 15, y);
-    ctx.quadraticCurveTo(x + 25, y - 10, x + 20, y - 15);
-    ctx.stroke();
-
-    // 눈
-    ctx.fillStyle = '#000';
-    ctx.beginPath();
-    ctx.arc(x - 13, y - 7, 2, 0, Math.PI * 2);
-    ctx.arc(x - 7, y - 7, 2, 0, Math.PI * 2);
-    ctx.fill();
+        ctx.fillStyle = '#000';
+        ctx.beginPath();
+        ctx.arc(x - 13, y - 7, 2, 0, Math.PI * 2);
+        ctx.arc(x - 7, y - 7, 2, 0, Math.PI * 2);
+        ctx.fill();
+    }
 }
 
 // 아이템 그리기
@@ -523,7 +530,7 @@ function drawCharacter() {
 
     if (gameCleared) {
         charX = canvas.width - 250;
-        charY = 450;
+        charY = 418; // 캐릭터 크기에 맞춰 조정
     }
 
     // 무적 상태일 때 깜빡임 효과
