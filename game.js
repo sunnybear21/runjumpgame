@@ -223,7 +223,7 @@ function updateCharacter() {
 // 아이템 업데이트
 function updateItems() {
     // 현재 속도 (스피드 부스트 효과 적용)
-    const itemSpeed = speedBoostActive ? currentSpeed * 2.5 : currentSpeed;
+    const itemSpeed = speedBoostActive ? currentSpeed * 1.8 : currentSpeed;
 
     // 아이템 이동
     for (let i = items.length - 1; i >= 0; i--) {
@@ -243,9 +243,11 @@ function updateItems() {
                 // 생명 회복 (최대 5개)
                 lives = Math.min(lives + 1, 5);
             } else if (item.type === 'clock') {
-                // 스피드 부스트 효과 활성화 (2.5배 속도!)
+                // 스피드 부스트 효과 활성화 (1.8배 속도 + 무적!)
                 speedBoostActive = true;
                 speedBoostTimer = SPEED_BOOST_DURATION;
+                character.invincible = true;
+                character.invincibleTimer = SPEED_BOOST_DURATION;
             }
 
             items.splice(i, 1);
@@ -273,7 +275,7 @@ function updateItems() {
 // 장애물 업데이트
 function updateObstacles() {
     // 현재 속도 (스피드 부스트 효과 적용)
-    const obstacleSpeed = speedBoostActive ? currentSpeed * 2.5 : currentSpeed;
+    const obstacleSpeed = speedBoostActive ? currentSpeed * 1.8 : currentSpeed;
 
     // 장애물 이동
     for (let i = obstacles.length - 1; i >= 0; i--) {
@@ -282,8 +284,8 @@ function updateObstacles() {
         // 화면 밖으로 나간 장애물 제거 및 점수 증가
         if (obstacles[i].x + obstacles[i].width < 0) {
             obstacles.splice(i, 1);
-            // 스피드 부스트 중에는 점수도 2.5배!
-            score += speedBoostActive ? 25 : 10;
+            // 스피드 부스트 중에는 점수도 1.8배!
+            score += speedBoostActive ? 18 : 10;
 
             // 목표 점수 달성 체크
             if (score >= TARGET_SCORE) {
@@ -742,7 +744,7 @@ function gameLoop() {
         updateDifficulty();
 
         // 배경 스크롤 (스피드 부스트 적용)
-        const scrollSpeed = speedBoostActive ? currentBgSpeed * 2.5 : currentBgSpeed;
+        const scrollSpeed = speedBoostActive ? currentBgSpeed * 1.8 : currentBgSpeed;
         bgScroll += scrollSpeed;
         if (bgScroll > canvas.width) {
             bgScroll = 0;
