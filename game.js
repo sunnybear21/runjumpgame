@@ -28,15 +28,12 @@ const character = {
     width: 64, // 32 -> 64로 2배 증가
     height: 64, // 32 -> 64로 2배 증가
     velocityY: 0,
-    jumpPower: -12,
-    minJumpPower: -8, // 최소 점프력 (짧게 누를 때)
-    maxJumpPower: -14, // 최대 점프력 (길게 누를 때)
+    jumpPower: -13.5, // 점프력 증가 (더 높이 점프)
     gravity: 0.5,
     isJumping: false,
     groundY: 436, // 크기에 맞춰 groundY 조정
     invincible: false, // 무적 상태
-    invincibleTimer: 0,
-    jumpChargeTime: 0 // 점프 충전 시간
+    invincibleTimer: 0
 };
 
 // 캐릭터 이미지
@@ -70,17 +67,16 @@ let currentBgSpeed = 2;
 
 // 키 입력
 let spacePressed = false;
-let spaceJustPressed = false;
-
 window.addEventListener('keydown', (e) => {
     if (e.code === 'Space') {
         e.preventDefault();
         if (!gameStarted && !gameCleared) {
             gameStarted = true;
         }
-        if (!gameOver && !gameCleared && !character.isJumping && !spacePressed) {
-            spaceJustPressed = true;
-            character.jumpChargeTime = 0;
+        // 스페이스바 누르면 즉시 점프 (기존 방식)
+        if (!gameOver && !gameCleared && !character.isJumping) {
+            character.velocityY = character.jumpPower;
+            character.isJumping = true;
         }
         spacePressed = true;
     }
@@ -92,16 +88,6 @@ window.addEventListener('keydown', (e) => {
 window.addEventListener('keyup', (e) => {
     if (e.code === 'Space') {
         spacePressed = false;
-
-        // 스페이스바를 떼면 점프 실행
-        if (!gameOver && !gameCleared && !character.isJumping && spaceJustPressed) {
-            // 누른 시간에 따라 점프력 결정 (최대 15프레임까지)
-            const chargeRatio = Math.min(character.jumpChargeTime / 15, 1);
-            character.jumpPower = character.minJumpPower + (character.maxJumpPower - character.minJumpPower) * chargeRatio;
-            character.velocityY = character.jumpPower;
-            character.isJumping = true;
-            spaceJustPressed = false;
-        }
     }
 });
 
@@ -214,11 +200,6 @@ function checkCollision(char, obj) {
 
 // 캐릭터 업데이트
 function updateCharacter() {
-    // 스페이스바 누르고 있으면 충전 시간 증가
-    if (spacePressed && !character.isJumping && spaceJustPressed) {
-        character.jumpChargeTime++;
-    }
-
     // 슬로우 효과 중에는 중력도 약간 감소
     const currentGravity = slowDownActive ? character.gravity * 0.7 : character.gravity;
 
@@ -735,7 +716,6 @@ function restartGame() {
     character.isJumping = false;
     character.invincible = false;
     character.invincibleTimer = 0;
-    character.jumpChargeTime = 0;
     obstacles.length = 0;
     items.length = 0;
     obstacleTimer = 0;
@@ -748,7 +728,6 @@ function restartGame() {
     slowDownTimer = 0;
     consecutiveObstacles = 0;
     spacePressed = false;
-    spaceJustPressed = false;
 }
 
 // 게임 루프
