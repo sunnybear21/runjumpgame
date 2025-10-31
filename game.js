@@ -16,10 +16,10 @@ let currentInterval = 100; // 현재 장애물 생성 간격
 const MIN_INTERVAL = 50; // 최소 장애물 간격
 const MAX_SPEED = 10; // 최대 속도
 
-// 슬로우 효과
-let slowDownActive = false;
-let slowDownTimer = 0;
-const SLOW_DOWN_DURATION = 300; // 5초 (60fps * 5)
+// 스피드 부스트 효과
+let speedBoostActive = false;
+let speedBoostTimer = 0;
+const SPEED_BOOST_DURATION = 300; // 5초 (60fps * 5)
 
 // 캐릭터 설정
 const character = {
@@ -163,7 +163,7 @@ function getDifficultyLevel() {
 
 // 아이템 생성
 function createItem() {
-    const itemTypes = ['heart', 'clock']; // 하트(생명), 시계(슬로우)
+    const itemTypes = ['heart', 'clock']; // 하트(생명), 시계(스피드 부스트)
     const randomType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
 
     items.push({
@@ -200,11 +200,8 @@ function checkCollision(char, obj) {
 
 // 캐릭터 업데이트
 function updateCharacter() {
-    // 슬로우 효과 중에는 중력도 약간 감소
-    const currentGravity = slowDownActive ? character.gravity * 0.7 : character.gravity;
-
     // 중력 적용
-    character.velocityY += currentGravity;
+    character.velocityY += character.gravity;
     character.y += character.velocityY;
 
     // 바닥 체크
@@ -225,8 +222,8 @@ function updateCharacter() {
 
 // 아이템 업데이트
 function updateItems() {
-    // 현재 속도 (슬로우 효과 적용)
-    const itemSpeed = slowDownActive ? currentSpeed * 0.3 : currentSpeed;
+    // 현재 속도 (스피드 부스트 효과 적용)
+    const itemSpeed = speedBoostActive ? currentSpeed * 2.5 : currentSpeed;
 
     // 아이템 이동
     for (let i = items.length - 1; i >= 0; i--) {
@@ -246,9 +243,9 @@ function updateItems() {
                 // 생명 회복 (최대 5개)
                 lives = Math.min(lives + 1, 5);
             } else if (item.type === 'clock') {
-                // 슬로우 효과 활성화
-                slowDownActive = true;
-                slowDownTimer = SLOW_DOWN_DURATION;
+                // 스피드 부스트 효과 활성화 (2.5배 속도!)
+                speedBoostActive = true;
+                speedBoostTimer = SPEED_BOOST_DURATION;
             }
 
             items.splice(i, 1);
@@ -264,19 +261,19 @@ function updateItems() {
         }
     }
 
-    // 슬로우 효과 타이머
-    if (slowDownActive) {
-        slowDownTimer--;
-        if (slowDownTimer <= 0) {
-            slowDownActive = false;
+    // 스피드 부스트 효과 타이머
+    if (speedBoostActive) {
+        speedBoostTimer--;
+        if (speedBoostTimer <= 0) {
+            speedBoostActive = false;
         }
     }
 }
 
 // 장애물 업데이트
 function updateObstacles() {
-    // 현재 속도 (슬로우 효과 적용)
-    const obstacleSpeed = slowDownActive ? currentSpeed * 0.3 : currentSpeed;
+    // 현재 속도 (스피드 부스트 효과 적용)
+    const obstacleSpeed = speedBoostActive ? currentSpeed * 2.5 : currentSpeed;
 
     // 장애물 이동
     for (let i = obstacles.length - 1; i >= 0; i--) {
@@ -285,7 +282,8 @@ function updateObstacles() {
         // 화면 밖으로 나간 장애물 제거 및 점수 증가
         if (obstacles[i].x + obstacles[i].width < 0) {
             obstacles.splice(i, 1);
-            score += 10;
+            // 스피드 부스트 중에는 점수도 2.5배!
+            score += speedBoostActive ? 25 : 10;
 
             // 목표 점수 달성 체크
             if (score >= TARGET_SCORE) {
@@ -377,9 +375,9 @@ function drawBackground() {
     ctx.fillStyle = getSkyColor();
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // 슬로우 효과 시각화
-    if (slowDownActive) {
-        ctx.fillStyle = 'rgba(100, 200, 255, 0.1)';
+    // 스피드 부스트 효과 시각화 (노란빛)
+    if (speedBoostActive) {
+        ctx.fillStyle = 'rgba(255, 215, 0, 0.15)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
@@ -625,12 +623,12 @@ function drawUI() {
     // 생명 표시
     drawLives();
 
-    // 슬로우 효과 표시
-    if (slowDownActive) {
-        ctx.fillStyle = '#2196F3';
+    // 스피드 부스트 효과 표시
+    if (speedBoostActive) {
+        ctx.fillStyle = '#FFD700';
         ctx.font = 'bold 20px Arial';
-        const timeLeft = Math.ceil(slowDownTimer / 60);
-        ctx.fillText(`⏰ SLOW MODE (${timeLeft}s)`, canvas.width / 2 - 100, 40);
+        const timeLeft = Math.ceil(speedBoostTimer / 60);
+        ctx.fillText(`⚡ SPEED BOOST! (${timeLeft}s)`, canvas.width / 2 - 120, 40);
     }
 
     // 게임 시작 전 안내
@@ -650,7 +648,7 @@ function drawUI() {
 
         ctx.font = '20px Arial';
         ctx.fillText('❤️ 생명 3개 | 아이템을 먹으세요!', canvas.width / 2, canvas.height / 2 + 70);
-        ctx.fillText('❤️ = 생명 회복 | ⏰ = 속도 감소', canvas.width / 2, canvas.height / 2 + 100);
+        ctx.fillText('❤️ = 생명 회복 | ⚡ = 스피드 부스트!', canvas.width / 2, canvas.height / 2 + 100);
 
         ctx.font = '18px Arial';
         ctx.fillText(`목표: ${TARGET_SCORE}점 달성`, canvas.width / 2, canvas.height / 2 + 140);
@@ -724,8 +722,8 @@ function restartGame() {
     currentSpeed = 5;
     currentInterval = 100;
     currentBgSpeed = 2;
-    slowDownActive = false;
-    slowDownTimer = 0;
+    speedBoostActive = false;
+    speedBoostTimer = 0;
     consecutiveObstacles = 0;
     spacePressed = false;
 }
@@ -743,8 +741,8 @@ function gameLoop() {
         checkCollisions();
         updateDifficulty();
 
-        // 배경 스크롤
-        const scrollSpeed = slowDownActive ? currentBgSpeed * 0.3 : currentBgSpeed;
+        // 배경 스크롤 (스피드 부스트 적용)
+        const scrollSpeed = speedBoostActive ? currentBgSpeed * 2.5 : currentBgSpeed;
         bgScroll += scrollSpeed;
         if (bgScroll > canvas.width) {
             bgScroll = 0;
