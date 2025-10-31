@@ -24,16 +24,19 @@ const SLOW_DOWN_DURATION = 300; // 5초 (60fps * 5)
 // 캐릭터 설정
 const character = {
     x: 100,
-    y: 418, // 크기에 맞춰 y 위치 조정 (450 - 32 = 418)
+    y: 436, // 크기에 맞춰 y 위치 조정 (450 - 64= 436)
     width: 64, // 32 -> 64로 2배 증가
     height: 64, // 32 -> 64로 2배 증가
     velocityY: 0,
     jumpPower: -12,
+    minJumpPower: -8, // 최소 점프력 (짧게 누를 때)
+    maxJumpPower: -14, // 최대 점프력 (길게 누를 때)
     gravity: 0.5,
     isJumping: false,
-    groundY: 418, // 크기에 맞춰 groundY 조정
+    groundY: 436, // 크기에 맞춰 groundY 조정
     invincible: false, // 무적 상태
-    invincibleTimer: 0
+    invincibleTimer: 0,
+    jumpChargeTime: 0 // 점프 충전 시간
 };
 
 // 캐릭터 이미지
@@ -53,6 +56,8 @@ const obstacles = [];
 const obstacleWidth = 30;
 const obstacleHeight = 50;
 let obstacleTimer = 0;
+let consecutiveObstacles = 0; // 연속 장애물 카운터
+const MAX_CONSECUTIVE_OBSTACLES = 3; // 최대 연속 장애물 수
 
 // 아이템 설정
 const items = [];
@@ -65,15 +70,17 @@ let currentBgSpeed = 2;
 
 // 키 입력
 let spacePressed = false;
+let spaceJustPressed = false;
+
 window.addEventListener('keydown', (e) => {
     if (e.code === 'Space') {
         e.preventDefault();
         if (!gameStarted && !gameCleared) {
             gameStarted = true;
         }
-        if (!gameOver && !gameCleared && !character.isJumping) {
-            character.velocityY = character.jumpPower;
-            character.isJumping = true;
+        if (!gameOver && !gameCleared && !character.isJumping && !spacePressed) {
+            spaceJustPressed = true;
+            character.jumpChargeTime = 0;
         }
         spacePressed = true;
     }
@@ -85,6 +92,16 @@ window.addEventListener('keydown', (e) => {
 window.addEventListener('keyup', (e) => {
     if (e.code === 'Space') {
         spacePressed = false;
+
+        // 스페이스바를 떼면 점프 실행
+        if (!gameOver && !gameCleared && !character.isJumping && spaceJustPressed) {
+            // 누른 시간에 따라 점프력 결정 (최대 15프레임까지)
+            const chargeRatio = Math.min(character.jumpChargeTime / 15, 1);
+            character.jumpPower = character.minJumpPower + (character.maxJumpPower - character.minJumpPower) * chargeRatio;
+            character.velocityY = character.jumpPower;
+            character.isJumping = true;
+            spaceJustPressed = false;
+        }
     }
 });
 
@@ -197,8 +214,16 @@ function checkCollision(char, obj) {
 
 // 캐릭터 업데이트
 function updateCharacter() {
+    // 스페이스바 누르고 있으면 충전 시간 증가
+    if (spacePressed && !character.isJumping && spaceJustPressed) {
+        character.jumpChargeTime++;
+    }
+
+    // 슬로우 효과 중에는 중력도 약간 감소
+    const currentGravity = slowDownActive ? character.gravity * 0.7 : character.gravity;
+
     // 중력 적용
-    character.velocityY += character.gravity;
+    character.velocityY += currentGravity;
     character.y += character.velocityY;
 
     // 바닥 체크
@@ -292,21 +317,31 @@ function updateObstacles() {
     if (score < TARGET_SCORE) {
         obstacleTimer++;
 
-        // 랜덤 간격 추가 (연속 장애물 생성 가능)
+        // 랜덤 간격 추가 (연속 장애물 생성 제한)
         let randomInterval = currentInterval;
+        let shouldCreateFast = false;
 
-        // 30% 확률로 빠르게 장애물 생성 (연속 장애물)
-        if (Math.random() < 0.3) {
-            randomInterval = currentInterval * 0.5;
+        // 연속 장애물이 최대치 미만일 때만 빠른 생성 허용
+        if (consecutiveObstacles < MAX_CONSECUTIVE_OBSTACLES && Math.random() < 0.2) {
+            // 20%로 확률 낮춤 (기존 30%)
+            randomInterval = currentInterval * 0.6; // 0.5 -> 0.6으로 완화
+            shouldCreateFast = true;
         }
-        // 20% 확률로 느리게 장애물 생성
-        else if (Math.random() < 0.2) {
-            randomInterval = currentInterval * 1.5;
+        // 40% 확률로 느리게 장애물 생성 (여유 시간 제공)
+        else if (Math.random() < 0.4) {
+            randomInterval = currentInterval * 1.8; // 1.5 -> 1.8로 더 여유롭게
+            consecutiveObstacles = 0; // 연속 카운터 리셋
         }
 
         if (obstacleTimer > randomInterval) {
             createObstacle();
             obstacleTimer = 0;
+
+            if (shouldCreateFast) {
+                consecutiveObstacles++;
+            } else {
+                consecutiveObstacles = 0;
+            }
         }
     }
 }
@@ -700,6 +735,7 @@ function restartGame() {
     character.isJumping = false;
     character.invincible = false;
     character.invincibleTimer = 0;
+    character.jumpChargeTime = 0;
     obstacles.length = 0;
     items.length = 0;
     obstacleTimer = 0;
@@ -710,6 +746,9 @@ function restartGame() {
     currentBgSpeed = 2;
     slowDownActive = false;
     slowDownTimer = 0;
+    consecutiveObstacles = 0;
+    spacePressed = false;
+    spaceJustPressed = false;
 }
 
 // 게임 루프
